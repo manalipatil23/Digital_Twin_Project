@@ -1193,7 +1193,7 @@ def test_temporal_split_excludes_temporal_leakage_and_says_so():
     groups, stamps, y = [], [], []
     X = {k: np.zeros(NP * n) for k in ("cgm_level", "hr_mean_3h")}
     for p in range(NP):
-        t = pd.date_range("2021-01-01", periods=n, freq="15min") + pd.Timedelta(days=p * 30)
+        t = pd.date_range("2021-01-01", periods=n, freq="15min") + pd.to_timedelta(p * 30, unit="D")
         g = 100 + 40 * np.clip(np.sin(np.arange(n) / 30.0), 0, None) + rng.normal(0, 3, n)
         y.append((g > 120).astype(int))
         groups += [p] * n
