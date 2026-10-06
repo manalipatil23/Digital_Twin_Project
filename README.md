@@ -1,8 +1,46 @@
-# Digital Twin PoC — Predictive Glucose-Spike Alert
+# Digital Twin Project — Predictive Glucose-Spike Alert
+
+## Unstop Digital Twin Challenge 2026
+
+### Team Details
+- **Team Name:** TechThonX
+- **Participation:** Individual Participant
+- **Participant:** Manali Patil
+
+### College / Incubator Information
+- **College:** Government College of Engineering, Chhatrapati Sambhajinagar
+- **Incubator:** Not Applicable
+
+### Project Title
+**Digital Twin for Predictive Glucose-Spike Alert**
+
+### Healthcare Use Case
+A healthcare-focused digital twin prototype that combines static EHR information with wearable/IoT data to represent a virtual patient state and predict a potential glucose spike up to 2 hours in advance.
+
+## Technical Stack
+
+- **Programming Language:** Python
+- **Data Processing:** Pandas, NumPy
+- **Machine Learning:** Scikit-learn
+- **Model Persistence:** Joblib
+- **Testing:** Pytest
+- **Dashboard:** HTML, CSS, JavaScript
+- **Visualization:** Chart.js
+
+## AI/ML Model Details
+
+- **Task:** Binary classification of a glucose spike occurring within the next 2 hours.
+- **Model:** `HistGradientBoostingClassifier` from scikit-learn.
+- **Validation:** 5 × `GroupShuffleSplit`, grouped by `patient_id`.
+- **Grouping:** A patient's records never appear in both training and test sets.
+- **Evaluation:** ROC-AUC, Brier score, log loss, ECE, precision at alert budgets, and patient-level cluster-bootstrap significance testing.
+- **Input Data:** Static EHR information combined with dynamic wearable/IoT and CGM-derived features.
+
+---
 
 A Phase-1 prototype that fuses a **static EHR** record and a **wearable/IoT
 stream** to predict an adverse health event before it happens — a glucose spike
-within the next 2 hours. Built for the Happiest Health Digital Twin Challenge.
+within the next 2 hours. Built for the Unstop Digital Twin Challenge 2026, organized by Happiest Health.
 Every figure in this repo is generated from `model/metrics.json`; none is
 hand-copied.
 
@@ -13,8 +51,7 @@ their clinic record and tries to warn them roughly two hours before glucose
 spikes. The clock starts when the system is handed a new reading; it then
 decides whether to raise an alert.
 
-**How well it works, on synthetic data.** Out of 100 comparable patients it
-correctly ranks about 84 pairs — a useful signal, and better than comparing
+**How well it works, on synthetic data.**A ROC-AUC of 0.843 means the model ranks a randomly selected positive case above a randomly selected negative case about 84% of the time. — a useful signal, and better than comparing
 patients on their clinic history alone. Averaged over five independent runs of
 the data generator, the headline figure is **0.843**, with a spread of ±0.021.
 At this alert rate a patient would get **under two warnings a day**, and roughly
@@ -27,7 +64,7 @@ the results, on the same data — combining the wearable and clinic streams is
 *average* of five draws, not the best one: the model that ships happens to be
 the luckiest of the five, and this README says that too.
 
-**On real patients.** The full test was run on 70 real patients with diabetes.
+**On real patients.** The external cohort contains 70 real patients with diabetes; 50 had sufficient contiguous context to produce a valid scored prediction window.
 The same code ran unchanged, and the improvement over a naive guess was real
 but roughly **four times smaller** than on synthetic data. That gap is reported,
 not smoothed over. The shortcut baseline scored 0.977 on that cohort (base rate
@@ -84,7 +121,7 @@ the run is auditable when it happens.
   The AUC moved 0.815–0.876, which is why the headline is the mean (0.843 ±
   0.021) rather than any one seed. The shortcut-control gain survived all five.
   The fusion-vs-best-single delta did not: it is negative in 4 of 5.
-- **Real data: the protocol runs, the numbers do not transfer.** The external
+- **Real data: the protocol runs, but performance does not directly transfer.** The external
   harness has been run end-to-end on real patients (UCI Diabetes, CC BY; 70
   available, 50 with enough contiguous context to score). Engineered glucose
   context beats a naive current-value baseline by +0.006 (p < 0.001) — same
@@ -231,8 +268,7 @@ inspect the schema without running anything.
 
 ## Data, privacy & production
 
-The headline model is fit **only on synthetic data**, so the shipped artifact is
-clear of HIPAA / DPDP-Act concerns. One external run did use real patient
+The headline model is fit **only on synthetic data**, so no real patient records are included in the shipped training dataset or model artifact. One external run did use real patient
 records — the public, CC BY 4.0 UCI Diabetes cohort, processed entirely
 locally; **no raw real data is committed** (`data/real/` is gitignored, and the
 credential-gated datasets whose DUAs forbid redistribution are never fetched or
