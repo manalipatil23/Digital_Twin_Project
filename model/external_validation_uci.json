@@ -1,0 +1,57 @@
+{
+  "generated_by": "src/validate_real_data.py",
+  "data_source": "UCI Diabetes (AIM '94, Kahn; CC BY 4.0)",
+  "out_name": "uci",
+  "protocol": "5 x GroupShuffleSplit(test_size=0.25) grouped by patient_id, HistGradientBoostingClassifier with the same hyper-parameters and patient-level cluster bootstrap (2000 resamples, floor 1/2000) as the synthetic pipeline (src/train_model.py)",
+  "tick_minutes": 15,
+  "label_definition": "30-min-smoothed glucose exceeds 180 mg/dL or rises >= 30 mg/dL within the next 2 h; tail rows without a full lookahead are dropped",
+  "resampling": "per-patient 15-min grid, linear interpolation across gaps <= 120 min",
+  "n_patients": 50,
+  "n_rows": 66533,
+  "positive_rate": 0.5407,
+  "feature_columns": [
+    "cgm_level",
+    "cgm_delta_15m",
+    "cgm_delta_30m",
+    "cgm_change_1h",
+    "cgm_mean_3h",
+    "cgm_sd_3h",
+    "cgm_max_6h",
+    "hour_sin",
+    "hour_cos"
+  ],
+  "feature_set": "auto",
+  "variants": {
+    "context": {
+      "roc_auc_mean": 0.9826331803152663,
+      "roc_auc_std": 0.0022224061189015146,
+      "roc_auc_per_fold": [
+        0.9839572874000768,
+        0.983541165347227,
+        0.9799413244455238,
+        0.9806464341150021,
+        0.9850796902685022
+      ]
+    },
+    "naive": {
+      "roc_auc_mean": 0.9767593255498379,
+      "roc_auc_std": 0.0032221757489253196,
+      "roc_auc_per_fold": [
+        0.9789913262158109,
+        0.9778306740354559,
+        0.9714683187994837,
+        0.9761054426207827,
+        0.9794008660776562
+      ]
+    }
+  },
+  "paired_deltas": {
+    "context_vs_naive": {
+      "delta_roc_auc": 0.0058738547654283435,
+      "bootstrap_p": 0.0005,
+      "p_rendered": "p < 0.001",
+      "n_resamples": 2000
+    }
+  },
+  "runtime_seconds": 94.0
+}

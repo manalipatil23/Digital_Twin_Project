@@ -1,0 +1,16 @@
+# Large generated artifacts -- regenerate with the scripts in data/ and src/
+# (see README section 5, "How to run it"). Kept out of git to stay well under
+# GitHub's per-file size guidance; a small sample is kept for quick review.
+data/wearable_timeseries.csv
+data/fused_training_table.parquet
+data/_ground_truth_latents_DO_NOT_USE_AS_FEATURES.csv
+
+# Real-data staging (converted external cohorts). Raw real patient data is
+# never committed; data/real/ holds transient converted CSVs only.
+data/real/
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+*.log

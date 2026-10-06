@@ -1,0 +1,54 @@
+{
+  "generated_by": "src/train_cv_risk_model.py",
+  "n_rows": 7000,
+  "n_patients": 500,
+  "positive_rate": 0.086,
+  "n_cv_folds": 5,
+  "label_definition": ">= 3 consecutive days within the next 7 where daily HRV < patient's own p20 AND resting HR > patient's own p70",
+  "known_caveats": [
+    "p20/p70 baselines are computed over the full 21-day window; a deployed system would need a trailing baseline, which is harder.",
+    "only 14 usable days per patient (7,000 rows total) -- wide fold-to-fold variance is expected."
+  ],
+  "ablation": {
+    "full_fusion": {
+      "roc_auc_mean": 0.640034064448861,
+      "average_precision_mean": 0.12988718291697143,
+      "brier_mean": 0.07955706516270242,
+      "roc_auc_std": 0.04020567167439986,
+      "average_precision_std": 0.02722868517383395,
+      "brier_std": 0.011752831139993784,
+      "n_folds": 5
+    },
+    "dynamic_only": {
+      "roc_auc_mean": 0.6372924545191104,
+      "average_precision_mean": 0.12593549766769555,
+      "brier_mean": 0.0779655585987101,
+      "roc_auc_std": 0.028061726415722844,
+      "average_precision_std": 0.02054725004868692,
+      "brier_std": 0.009841118723420613,
+      "n_folds": 5
+    },
+    "static_only": {
+      "roc_auc_mean": 0.50214469387007,
+      "average_precision_mean": 0.09420583907138078,
+      "brier_mean": 0.08030373253169518,
+      "roc_auc_std": 0.037392614746866094,
+      "average_precision_std": 0.024315915332890466,
+      "brier_std": 0.010707302469460387,
+      "n_folds": 5
+    },
+    "shortcut_control": {
+      "roc_auc_mean": 0.49775017789077136,
+      "average_precision_mean": 0.09238676477636107,
+      "brier_mean": 0.08345342316037759,
+      "roc_auc_std": 0.036119147357025407,
+      "average_precision_std": 0.013134577559669847,
+      "brier_std": 0.010977826332193245,
+      "n_folds": 5
+    }
+  },
+  "best_single_stream_variant": "dynamic_only",
+  "fusion_lift_over_best_single_stream_auc": 0.002741609929750588,
+  "within_patient_permutation_auc": 0.5546,
+  "runtime_seconds": 18.4
+}

@@ -1,0 +1,392 @@
+{
+  "generated_by": "src/train_model.py",
+  "seed": 42,
+  "n_rows": 1004000,
+  "n_patients": 500,
+  "positive_rate": 0.016656374501992033,
+  "n_cv_folds": 5,
+  "cv_protocol": "5 x GroupShuffleSplit(test_size=0.25) grouped by patient_id",
+  "model": {
+    "estimator": "HistGradientBoostingClassifier",
+    "max_iter": 160,
+    "max_depth": 4,
+    "learning_rate": 0.1
+  },
+  "label_definition": "30-min-smoothed CGM exceeds 180 mg/dL, or rises >= 30 mg/dL, at any point in the next 2h",
+  "lookahead_hours": 2,
+  "resolution_minutes": 15,
+  "ablation": {
+    "shortcut_control": {
+      "roc_auc_mean": 0.7944660633096952,
+      "average_precision_mean": 0.16094799614442873,
+      "brier_mean": 0.01598636085701111,
+      "log_loss_mean": 0.07426300005053954,
+      "ece_10bin_mean": 0.0031150557638201628,
+      "roc_auc_std": 0.032686408366320065,
+      "average_precision_std": 0.06032274167609456,
+      "brier_std": 0.002552682445241704,
+      "log_loss_std": 0.008906852331518868,
+      "ece_10bin_std": 0.0018731688337400992,
+      "n_folds": 5,
+      "roc_auc_sem": 0.014617806209481901,
+      "roc_auc_per_fold": [
+        0.8209,
+        0.7384,
+        0.8051,
+        0.8123,
+        0.7955
+      ],
+      "operating_points_mean": {
+        "alert_budget_0.01": {
+          "budget": 0.01,
+          "risk_threshold": 0.2331,
+          "precision": 0.3017,
+          "recall": 0.1665,
+          "alerts_per_patient_day": 1.0
+        },
+        "alert_budget_0.05": {
+          "budget": 0.05,
+          "risk_threshold": 0.0539,
+          "precision": 0.1395,
+          "recall": 0.3831,
+          "alerts_per_patient_day": 4.8
+        },
+        "alert_budget_0.10": {
+          "budget": 0.1,
+          "risk_threshold": 0.0252,
+          "precision": 0.0893,
+          "recall": 0.4946,
+          "alerts_per_patient_day": 9.6
+        },
+        "alert_budget_0.25": {
+          "budget": 0.25,
+          "risk_threshold": 0.0136,
+          "precision": 0.0486,
+          "recall": 0.6812,
+          "alerts_per_patient_day": 24.0
+        }
+      }
+    },
+    "full_fusion": {
+      "roc_auc_mean": 0.8154330638857383,
+      "average_precision_mean": 0.16199658779458587,
+      "brier_mean": 0.016057269779455745,
+      "log_loss_mean": 0.07365285868569098,
+      "ece_10bin_mean": 0.0036860026077529147,
+      "roc_auc_std": 0.039108144079345125,
+      "average_precision_std": 0.056511673873099535,
+      "brier_std": 0.0026100518021249784,
+      "log_loss_std": 0.00860853575275464,
+      "ece_10bin_std": 0.0012418460192981369,
+      "n_folds": 5,
+      "roc_auc_sem": 0.017489693727054324,
+      "roc_auc_per_fold": [
+        0.8361,
+        0.7502,
+        0.8138,
+        0.8521,
+        0.825
+      ],
+      "delta_roc_auc_vs_reference": 0.021,
+      "operating_points_mean": {
+        "alert_budget_0.01": {
+          "budget": 0.01,
+          "risk_threshold": 0.2465,
+          "precision": 0.2974,
+          "recall": 0.1671,
+          "alerts_per_patient_day": 1.0
+        },
+        "alert_budget_0.05": {
+          "budget": 0.05,
+          "risk_threshold": 0.0591,
+          "precision": 0.1381,
+          "recall": 0.3802,
+          "alerts_per_patient_day": 4.8
+        },
+        "alert_budget_0.10": {
+          "budget": 0.1,
+          "risk_threshold": 0.032,
+          "precision": 0.0904,
+          "recall": 0.4994,
+          "alerts_per_patient_day": 9.6
+        },
+        "alert_budget_0.25": {
+          "budget": 0.25,
+          "risk_threshold": 0.0136,
+          "precision": 0.0509,
+          "recall": 0.7111,
+          "alerts_per_patient_day": 24.0
+        }
+      },
+      "delta_bootstrap_p": 0.007
+    },
+    "dynamic_only": {
+      "roc_auc_mean": 0.8269052720978911,
+      "average_precision_mean": 0.1719959268910583,
+      "brier_mean": 0.015892758862048342,
+      "log_loss_mean": 0.07206285854603936,
+      "ece_10bin_mean": 0.0027169570978524352,
+      "roc_auc_std": 0.03185038104884008,
+      "average_precision_std": 0.052258533845877475,
+      "brier_std": 0.0026672841719648645,
+      "log_loss_std": 0.009196504998330794,
+      "ece_10bin_std": 0.0014553261826859179,
+      "n_folds": 5,
+      "roc_auc_sem": 0.014243923426895493,
+      "roc_auc_per_fold": [
+        0.8468,
+        0.7745,
+        0.82,
+        0.8534,
+        0.8399
+      ],
+      "delta_roc_auc_vs_reference": 0.0325,
+      "operating_points_mean": {
+        "alert_budget_0.01": {
+          "budget": 0.01,
+          "risk_threshold": 0.2364,
+          "precision": 0.3103,
+          "recall": 0.1738,
+          "alerts_per_patient_day": 1.0
+        },
+        "alert_budget_0.05": {
+          "budget": 0.05,
+          "risk_threshold": 0.0546,
+          "precision": 0.1455,
+          "recall": 0.4028,
+          "alerts_per_patient_day": 4.8
+        },
+        "alert_budget_0.10": {
+          "budget": 0.1,
+          "risk_threshold": 0.0298,
+          "precision": 0.0948,
+          "recall": 0.5285,
+          "alerts_per_patient_day": 9.6
+        },
+        "alert_budget_0.25": {
+          "budget": 0.25,
+          "risk_threshold": 0.0147,
+          "precision": 0.0526,
+          "recall": 0.7385,
+          "alerts_per_patient_day": 24.0
+        }
+      },
+      "delta_bootstrap_p": 0.0005
+    },
+    "static_only": {
+      "roc_auc_mean": 0.7168392154207727,
+      "average_precision_mean": 0.080181267706379,
+      "brier_mean": 0.016891693917436515,
+      "log_loss_mean": 0.08123069466176683,
+      "ece_10bin_mean": 0.0062956584689996264,
+      "roc_auc_std": 0.07649241058921344,
+      "average_precision_std": 0.030594682782269022,
+      "brier_std": 0.0030856912333351787,
+      "log_loss_std": 0.009789463869928575,
+      "ece_10bin_std": 0.002454030201286472,
+      "n_folds": 5,
+      "roc_auc_sem": 0.0342084459680612,
+      "roc_auc_per_fold": [
+        0.7688,
+        0.5867,
+        0.7296,
+        0.7767,
+        0.7225
+      ],
+      "delta_roc_auc_vs_reference": -0.0776,
+      "operating_points_mean": {
+        "alert_budget_0.01": {
+          "budget": 0.01,
+          "risk_threshold": 0.1488,
+          "precision": 0.1394,
+          "recall": 0.0803,
+          "alerts_per_patient_day": 1.0
+        },
+        "alert_budget_0.05": {
+          "budget": 0.05,
+          "risk_threshold": 0.0523,
+          "precision": 0.1158,
+          "recall": 0.3183,
+          "alerts_per_patient_day": 4.8
+        },
+        "alert_budget_0.10": {
+          "budget": 0.1,
+          "risk_threshold": 0.0214,
+          "precision": 0.0769,
+          "recall": 0.4183,
+          "alerts_per_patient_day": 9.6
+        },
+        "alert_budget_0.25": {
+          "budget": 0.25,
+          "risk_threshold": 0.0117,
+          "precision": 0.0412,
+          "recall": 0.5678,
+          "alerts_per_patient_day": 24.0
+        }
+      },
+      "delta_bootstrap_p": 0.0005
+    },
+    "shortcut_plus_autonomic": {
+      "roc_auc_mean": 0.8153152996852955,
+      "average_precision_mean": 0.1645804155942652,
+      "brier_mean": 0.016026049536642557,
+      "log_loss_mean": 0.07321534738595838,
+      "ece_10bin_mean": 0.003548891842013413,
+      "roc_auc_std": 0.03409853847828895,
+      "average_precision_std": 0.053971369549283374,
+      "brier_std": 0.0026441208894326354,
+      "log_loss_std": 0.008911276983444218,
+      "ece_10bin_std": 0.001676815646121131,
+      "n_folds": 5,
+      "roc_auc_sem": 0.015249329994169263,
+      "roc_auc_per_fold": [
+        0.8392,
+        0.7578,
+        0.817,
+        0.8426,
+        0.82
+      ],
+      "delta_roc_auc_vs_reference": 0.0209,
+      "operating_points_mean": {
+        "alert_budget_0.01": {
+          "budget": 0.01,
+          "risk_threshold": 0.2509,
+          "precision": 0.2997,
+          "recall": 0.1676,
+          "alerts_per_patient_day": 1.0
+        },
+        "alert_budget_0.05": {
+          "budget": 0.05,
+          "risk_threshold": 0.0522,
+          "precision": 0.1421,
+          "recall": 0.3927,
+          "alerts_per_patient_day": 4.8
+        },
+        "alert_budget_0.10": {
+          "budget": 0.1,
+          "risk_threshold": 0.0287,
+          "precision": 0.0925,
+          "recall": 0.5152,
+          "alerts_per_patient_day": 9.6
+        },
+        "alert_budget_0.25": {
+          "budget": 0.25,
+          "risk_threshold": 0.0145,
+          "precision": 0.051,
+          "recall": 0.715,
+          "alerts_per_patient_day": 24.0
+        }
+      },
+      "delta_bootstrap_p": 0.001
+    },
+    "autonomic_only": {
+      "roc_auc_mean": 0.7720450750242506,
+      "average_precision_mean": 0.11133622678231418,
+      "brier_mean": 0.01657029862002488,
+      "log_loss_mean": 0.07796125390266875,
+      "ece_10bin_mean": 0.0030263483574347982,
+      "roc_auc_std": 0.037341213929627984,
+      "average_precision_std": 0.03234793089615511,
+      "brier_std": 0.0029458324132113655,
+      "log_loss_std": 0.011856019437662301,
+      "ece_10bin_std": 0.0022008502994115007,
+      "n_folds": 5,
+      "roc_auc_sem": 0.016699498541802044,
+      "roc_auc_per_fold": [
+        0.8087,
+        0.7198,
+        0.7465,
+        0.7935,
+        0.7918
+      ],
+      "delta_roc_auc_vs_reference": -0.0224,
+      "operating_points_mean": {
+        "alert_budget_0.01": {
+          "budget": 0.01,
+          "risk_threshold": 0.1766,
+          "precision": 0.2462,
+          "recall": 0.1385,
+          "alerts_per_patient_day": 1.0
+        },
+        "alert_budget_0.05": {
+          "budget": 0.05,
+          "risk_threshold": 0.0473,
+          "precision": 0.1153,
+          "recall": 0.3227,
+          "alerts_per_patient_day": 4.8
+        },
+        "alert_budget_0.10": {
+          "budget": 0.1,
+          "risk_threshold": 0.0301,
+          "precision": 0.0768,
+          "recall": 0.4309,
+          "alerts_per_patient_day": 9.6
+        },
+        "alert_budget_0.25": {
+          "budget": 0.25,
+          "risk_threshold": 0.0172,
+          "precision": 0.0457,
+          "recall": 0.6428,
+          "alerts_per_patient_day": 24.0
+        }
+      },
+      "delta_bootstrap_p": 0.154
+    }
+  },
+  "headline": {
+    "roc_auc": 0.8154330638857383,
+    "average_precision": 0.16199658779458587,
+    "brier": 0.016057269779455745,
+    "ece_10bin": 0.0036860026077529147
+  },
+  "feature_value_decomposition": {
+    "_note": "All deltas are PAIRED against the named reference on the identical fold set (a patient's rows never span train and test). p-values come from a patient-level cluster bootstrap over the pooled out-of-fold predictions (2000 resamples, patients are the resampling unit): folds are not independent replicates, so resampling five of them could never licence a p below 1/32.",
+    "autonomic_channels_vs_matched_shortcut": {
+      "delta_roc_auc": 0.02087999999999999,
+      "bootstrap_p": 0.001
+    },
+    "full_model_vs_shortcut_control": {
+      "delta_roc_auc": 0.020999999999999974,
+      "bootstrap_p": 0.007
+    },
+    "full_model_vs_ehr_only": {
+      "delta_roc_auc": 0.09857999999999996,
+      "bootstrap_p": 0.0005
+    },
+    "full_model_vs_best_single_stream": {
+      "delta_roc_auc": -0.011480000000000023,
+      "variant": "dynamic_only",
+      "bootstrap_p": 0.04
+    }
+  },
+  "statistical_testing": {
+    "paired_delta": "5-fold matched deltas (identical folds per variant)",
+    "p_value_method": "patient-level cluster bootstrap over pooled out-of-fold predictions",
+    "n_resamples": 2000,
+    "resampling_unit": "patient",
+    "why_not_fold_bootstrap": "the previous bootstrap resampled the 5 folds; their test sets overlap (GroupShuffleSplit per split) and a two-sided sign test on five matched pairs cannot go below p=1/32, so 'p < 0.001' claimed resolution the folds could not provide",
+    "fold_sign_test_two_sided_min_p": 0.0625
+  },
+  "fusion_lift_over_static_only_auc": 0.09857999999999996,
+  "fusion_lift_over_shortcut_control_auc": 0.020999999999999974,
+  "fusion_lift_over_best_single_stream_auc": -0.011480000000000023,
+  "fusion_lift_shortcut_bootstrap_p": 0.007,
+  "fusion_claim_significant_at_05": true,
+  "gain_from_autonomic_channels_auc": 0.02087999999999999,
+  "best_single_stream_variant": "dynamic_only",
+  "permutation_controls": {
+    "observed_auc": 0.7685,
+    "observed_auc_protocol": "single GroupShuffleSplit hold-out (seed=7, 25% of patients) -- the reference split that carries the permutation nulls, and therefore not the same evaluation as the 5-fold CV mean",
+    "headline_roc_auc_5fold_cv_mean": 0.8154,
+    "global_label_permutation_auc": 0.5021,
+    "within_patient_permutation_auc": 0.6544,
+    "note": "global_label_permutation_auc should be ~0.50. within_patient_permutation_auc isolates patient-identity memorisation: a high value means the model is keying on who the patient is rather than on their current physiological state."
+  },
+  "dynamic_feature_importance_share": 0.6656373131800744,
+  "physiology_feature_importance_share": 0.24423971111229084,
+  "top_feature": "hour_of_day",
+  "top_feature_importance_share": 0.175,
+  "n_train_patients": 375,
+  "n_test_patients": 125,
+  "runtime_seconds": 676.4
+}

@@ -1,0 +1,242 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The pipeline must not depend on a specific numpy/pandas/sklearn build.
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Correctness and leakage tests
+        run: python -m pytest tests/ -q
+
+      - name: Full pipeline (reduced population, via env override)
+        env:
+          # DAYS has a geometric floor of config.STRAIN_MIN_DAYS_REQUIRED (11),
+          # enforced in config.py: below it the cardiovascular-strain label
+          # cannot contain a single positive example and every AUC in
+          # cv_risk_metrics.json is NaN. That floor is NOT sufficient on its
+          # own: at 40 patients / 11 days the label STILL comes out degenerate
+          # (0.0 base rate, all folds single-class, NaN AUCs) and the pipeline
+          # reports it green. 12 days at 40 patients is empirically
+          # non-degenerate (verified: 22 positives, ~11% rate, no single-class
+          # fold), and train_cv_risk_model.py now exits loudly with an
+          # explanation if a run ever degenerates again.
+          DIGITAL_TWIN_N_PATIENTS: "40"
+          DIGITAL_TWIN_DAYS: "12"
+        run: |
+          python data/generate_ehr.py
+          python data/generate_wearable.py
+          python src/feature_engineering.py
+          python src/train_model.py
+          python src/train_cv_risk_model.py
+          python src/export_dashboard_data.py
+          python src/make_report.py
+
+      - name: External-validation harness rehearsal
+        run: |
+          # src/validate_real_data.py is the path to real-data validation (see
+          # docs/REAL_DATA.md). Real cohorts cannot be fetched in CI (UCI is
+          # fetched by a script; OhioT1DM/MIMIC need credentials), so CI
+          # rehearses the harness on the synthetic stream it just generated.
+          #
+          # This is the cheapest possible guard against the harness rotting:
+          # it proves the real-data code path still runs end to end -- resample,
+          # features, label, grouped CV, patient-level bootstrap, JSON output.
+          # The rehearsal JSON is named so the generated RESULTS.md section
+          # excludes it (see _external_validation_rows in src/make_report.py).
+          #
+          # It rehearses the PAIRED path too (--static + --temporal), because
+          # that is the path the fusion claim depends on and it is the part
+          # with the most surface area to rot: the full/static_only variants,
+          # three paired comparisons in both directions, the forward-in-time
+          # protocol, and the scorable-coverage block that denominates the alert
+          # budget. Rehearsing only the unpaired path would leave every one of
+          # those untested in CI while still going green.
+          #
+          # Cost note: --static roughly triples this step (more variants x more
+          # folds x more bootstraps). It is paid here and not in pytest/ because
+          # pytest runs on every save locally; this step runs once per push.
+          python - <<'PY'
+          import pandas as pd
+          ehr = pd.read_csv("data/ehr_patients.csv")
+          ehr.assign(is_male=ehr["sex"].astype(str).str.strip().str.upper()
+                     .eq("MALE").astype(int))[
+              ["patient_id", "hba1c_pct", "is_male"]].to_csv(
+              "data/real_ci_rehearsal_static.csv", index=False)
+          print("rehearsal static table:", len(ehr), "patients")
+          PY
+          python src/validate_real_data.py \
+            --cgm data/wearable_timeseries.csv \
+            --static data/real_ci_rehearsal_static.csv \
+            --temporal \
+            --out ci_rehearsal \
+            --data-source "CI rehearsal (synthetic, not a result)"
+          python - <<'PY'
+          import json
+          ev = json.load(open("model/external_validation_ci_rehearsal.json"))
+          assert ev["n_rows"] > 0 and ev["n_patients"] > 0, ev
+          assert 0.0 < ev["positive_rate"] < 1.0, ev
+          for d in ev["paired_deltas"].values():
+              assert d["bootstrap_p"] > 0.0, d
+          # The paired variants must actually have been built, or the fusion
+          # rehearsal silently degraded into the unpaired one.
+          for v in ("context", "static_only", "full"):
+              assert v in ev["variants"], f"missing variant {v}: {list(ev['variants'])}"
+          assert "full_vs_static_only" in ev["paired_deltas"], ev["paired_deltas"]
+          assert "static_only_vs_full" in ev["paired_deltas"], ev["paired_deltas"]
+          cov = ev["scorable_coverage"]
+          assert 0.0 < cov["overall"] <= 1.0, cov
+          # Near-total, not exactly total: each patient loses its first ~12 ticks
+          # to the 3h rolling window's min_periods and its last 8 to the missing
+          # lookahead, which is correct behaviour and measures 0.9997 here. The
+          # property under test is that nothing is dropped for a MISSING
+          # MODALITY -- on the real paired cohort that drops ~40% of rows
+          # because the E4 was not worn continuously. A synthetic cohort with
+          # every channel present should sit just under 1.0, not near 0.6.
+          assert cov["overall"] > 0.99, cov
+          tv = ev.get("temporal_validation")
+          assert tv and tv.get("status") == "ok", tv
+          assert tv["excludes_temporal_leakage"] is True, tv
+          assert tv["excludes_patient_leakage"] is False, tv
+          print("external-validation harness rehearsal OK:", ev["n_rows"], "rows,",
+                len(ev["variants"]), "variants,", len(tv["variants"]), "temporal")
+          PY
+          # Regenerate the report now that a rehearsal JSON exists, then prove
+          # the rehearsal output is excluded from the shipped document.
+          python src/make_report.py
+          if grep -q "CI rehearsal" docs/RESULTS.md; then
+            echo "::error::rehearsal output leaked into docs/RESULTS.md"
+            exit 1
+          fi
+
+      - name: Report and README are up to date
+        run: |
+          # docs/RESULTS.md and the generated v2-vs-v3 table inside README.md
+          # are both produced by src/make_report.py from model/metrics.json.
+          #
+          # This check cannot simply diff against the committed copy, because the
+          # step above ran the pipeline on a REDUCED population (40 patients,
+          # 12 days) so CI stays fast. The regenerated report therefore has
+          # legitimately different numbers from the committed full-scale one,
+          # and diffing would fail on every run for the wrong reason.
+          #
+          # So the real property under test is idempotence: running the report
+          # generator twice in a row must produce identical output. That catches
+          # the actual failure mode -- a generator whose output depends on
+          # something other than metrics.json, or which is not deterministic --
+          # without mistaking "CI runs smaller" for "the docs are stale".
+          cp docs/RESULTS.md /tmp/results_first.md
+          cp README.md /tmp/readme_first.md
+          python src/make_report.py
+          if ! diff -q /tmp/results_first.md docs/RESULTS.md; then
+            echo "::error::src/make_report.py is not idempotent for docs/RESULTS.md"
+            exit 1
+          fi
+          if ! diff -q /tmp/readme_first.md README.md; then
+            echo "::error::src/make_report.py is not idempotent for README.md"
+            exit 1
+          fi
+
+      - name: Report claims match the metrics they were generated from
+        run: |
+          # The COMMITTED docs/RESULTS.md must agree with the COMMITTED
+          # model/metrics.json. This is the check that would have caught v2
+          # quoting 0.953 in one section and 0.955 in another while metrics.json
+          # said something else entirely.
+          #
+          # Both files are read back out of git rather than off disk, because
+          # the pipeline step above overwrote them with a reduced-population
+          # run. Reading the working tree here would only ever compare the
+          # reduced run against itself, which is the consistency check already
+          # performed in the previous step and proves nothing about what ships.
+          git show HEAD:docs/RESULTS.md > /tmp/committed_results.md
+          git show HEAD:model/metrics.json > /tmp/committed_metrics.json
+          python - <<'PY'
+          import json, sys
+          m = json.load(open("/tmp/committed_metrics.json"))
+          text = open("/tmp/committed_results.md", encoding="utf-8").read()
+          bad = []
+          for key in ("full_fusion", "shortcut_control", "dynamic_only", "static_only"):
+              share = f"{m['ablation'][key]['roc_auc_mean']:.4f}"
+              if share not in text:
+                  bad.append(f"{key} ROC-AUC {share} from committed metrics.json is "
+                             f"absent from the committed docs/RESULTS.md")
+          if bad:
+              print("::error::" + "; ".join(bad))
+              print("docs/RESULTS.md is stale. Run: python src/make_report.py "
+                    "and commit the result.")
+              sys.exit(1)
+          print("committed docs/RESULTS.md agrees with committed model/metrics.json")
+          PY
+
+      - name: Dashboard is self-contained (no network dependencies)
+        run: |
+          # v2 claimed the dashboard was "fully self-contained" while pulling
+          # Chart.js from a CDN and fonts from Google. Enforce that claim.
+          if grep -nEi 'src="https?://|href="https?://' dashboard/index.html; then
+            echo "::error::dashboard/index.html references remote resources"
+            exit 1
+          fi
+
+      - name: Submission archive has LF line endings
+        run: |
+          # The committed blobs were always LF; `core.autocrlf` is set on the
+          # authoring machine and normalises on commit. What was NOT clean was
+          # `git archive`, which is what the submission zip is built from: it
+          # emitted CRLF for every text file, so a reviewer unzipping the
+          # submission on any platform saw CRLF sources and noisy diffs against
+          # a fresh clone. .gitattributes (* text=auto eol=lf, with binary
+          # exceptions) fixes it at the source; this step stops it regressing.
+          #
+          # Binary payloads are skipped rather than asserted on: a .joblib is a
+          # pickle, and two CRLF bytes inside it are data, not line endings.
+          git archive --format=zip --prefix=digital-twin-poc/ HEAD -o /tmp/submission.zip
+          python - <<'PY'
+          import sys, zipfile
+          BINARY = (".joblib", ".png", ".jpg", ".jpeg", ".pdf", ".zip", ".gz")
+          bad = []
+          with zipfile.ZipFile("/tmp/submission.zip") as z:
+              for info in z.infolist():
+                  if info.filename.lower().endswith(BINARY):
+                      continue
+                  data = z.read(info)
+                  if b"\r\n" in data:
+                      bad.append((info.filename, data.count(b"\r\n")))
+          if bad:
+              for name, n in bad:
+                  print(f"::error::{name} contains {n} CRLF line endings")
+              print("Check .gitattributes, then rebuild the archive.")
+              sys.exit(1)
+          print("submission archive is LF-clean")
+          PY
+
+      - name: Upload dashboard artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-${{ matrix.python-version }}
+          path: |
+            dashboard/index.html
+            dashboard/demo_data.json
+            dashboard/vendor/
+          if: always()

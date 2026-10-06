@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aarogya Twin &middot; Clinician Console (synthetic demo)</title>
+
+<!--
+  SELF-CONTAINED BY DESIGN.
+  v2 of this dashboard claimed to be "fully self-contained" while pulling
+  Chart.js from cdnjs and two webfonts from Google Fonts -- it rendered blank
+  offline, which is exactly when you would want to demo it. Chart.js is now
+  vendored at ./vendor/chart.umd.min.js and the type stack is system-only, so
+  this file works from a file:// path with no network. CI enforces this with a
+  grep for remote resource references.
+-->
+<script src="./vendor/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#F5F7F6; --panel:#FFFFFF; --ink:#1B2430; --muted:#5B6B7A; --line:#E3E7E5;
+    --accent:#1F6F78; --accent-soft:#E4F0EF;
+    --low:#2E7D5B; --low-soft:#E5F3EC;
+    --mod:#B5791E; --mod-soft:#FBF1DF;
+    --high:#B4432D; --high-soft:#FBEAE5;
+    --warn:#8A5A00; --warn-soft:#FFF4D6;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:14px; line-height:1.45; display:flex; min-height:100vh;
+  }
+  .serif{font-family:ui-serif,Georgia,"Times New Roman",serif;}
+
+  /* ---------------- sidebar ---------------- */
+  aside{
+    width:300px; flex-shrink:0; background:var(--panel);
+    border-right:1px solid var(--line); display:flex; flex-direction:column;
+  }
+  .brand{padding:20px 20px 14px; border-bottom:1px solid var(--line);}
+  .brand .wordmark{font-family:ui-serif,Georgia,serif;font-size:20px;font-weight:500;}
+  .brand .sub{color:var(--muted);font-size:12px;margin-top:2px;}
+  .roster{overflow-y:auto;flex:1;padding:8px;min-height:120px;}
+  .roster-item{
+    padding:11px 12px; border-radius:10px; cursor:pointer; display:flex;
+    justify-content:space-between; align-items:center; gap:8px;
+  }
+  .roster-item:hover{background:#F7F9F8;}
+  .roster-item.active{background:var(--accent-soft);}
+  .roster-name{font-weight:600;font-size:13px;}
+  .roster-meta{color:var(--muted);font-size:11px;}
+  .pill{
+    font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;
+    white-space:nowrap;font-variant-numeric:tabular-nums;
+  }
+  .pill.low{background:var(--low-soft);color:var(--low);}
+  .pill.moderate{background:var(--mod-soft);color:var(--mod);}
+  .pill.high{background:var(--high-soft);color:var(--high);}
+
+  .model-card{
+    border-top:1px solid var(--line); padding:14px 18px;
+    font-size:11.5px; color:var(--muted); line-height:1.55;
+  }
+  .model-card b{color:var(--ink);font-size:12px;}
+  .model-card table{width:100%;border-collapse:collapse;margin:8px 0 6px;font-size:11px;}
+  .model-card td{padding:2px 0;}
+  .model-card td:last-child{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);}
+
+  .banner{
+    background:var(--warn-soft); border-top:1px solid #E8D9A8;
+    padding:11px 18px; font-size:11px; color:var(--warn); line-height:1.5;
+  }
+  .banner b{display:block;font-size:11.5px;margin-bottom:2px;}
+
+  /* ---------------- main ---------------- */
+  main{flex:1;padding:22px 26px;min-width:0;}
+  .patient-head{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    gap:20px; margin-bottom:18px; flex-wrap:wrap;
+  }
+  .patient-name{font-family:ui-serif,Georgia,serif;font-size:26px;font-weight:500;}
+  .patient-id-line{color:var(--muted);font-size:12.5px;margin-top:2px;}
+  .flags{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap;}
+  .flag{
+    font-size:11px;padding:3px 9px;border-radius:6px;
+    background:#EFF2F1;color:var(--muted);border:1px solid var(--line);
+  }
+  .flag.on{background:var(--high-soft);color:var(--high);border-color:#F0D2C9;font-weight:600;}
+
+  .risk-block{text-align:right;}
+  .risk-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .risk-number{font-size:40px;font-weight:600;line-height:1.05;font-variant-numeric:tabular-nums;}
+  .risk-number.low{color:var(--low);}
+  .risk-number.moderate{color:var(--mod);}
+  .risk-number.high{color:var(--high);}
+  .risk-sub{font-size:11.5px;color:var(--muted);max-width:330px;}
+
+  .grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);gap:16px;align-items:start;}
+  .col{display:flex;flex-direction:column;gap:16px;min-width:0;}
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:15px 17px;
+  }
+  .card h3{
+    margin:0 0 12px; font-size:12px; font-weight:600; color:var(--muted);
+    text-transform:uppercase; letter-spacing:.05em;
+  }
+  .card h3 span{text-transform:none;letter-spacing:0;font-weight:400;color:#93A2AE;}
+  .chart-box{position:relative;height:190px;}
+  .chart-box.tall{height:230px;}
+
+  .lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .lab-name{font-size:11px;color:var(--muted);}
+  .lab-value{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;}
+
+  .gene{margin-bottom:12px;}
+  .gene:last-child{margin-bottom:0;}
+  .gene-name{font-size:12.5px;font-weight:600;}
+  .gene-name small{display:block;font-weight:400;font-size:11px;color:var(--muted);}
+  .allele-dots{display:flex;gap:5px;margin-top:5px;}
+  .allele-dots span{
+    width:11px;height:11px;border-radius:50%;border:1.5px solid var(--muted);display:block;
+  }
+  .allele-dots span.filled{background:var(--accent);border-color:var(--accent);}
+
+  /* contributions */
+  .why-row{display:flex;align-items:center;gap:9px;margin-bottom:7px;font-size:11.5px;}
+  .why-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+            font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;}
+  .why-track{width:78px;height:7px;background:#EDF0EF;border-radius:4px;position:relative;flex-shrink:0;}
+  .why-fill{position:absolute;top:0;height:100%;border-radius:4px;}
+  .why-delta{width:48px;text-align:right;font-variant-numeric:tabular-nums;
+             font-size:11px;font-weight:600;flex-shrink:0;}
+  .why-note{font-size:10.5px;color:var(--muted);margin-top:9px;line-height:1.5;}
+
+  .alerts{list-style:none;margin:0;padding:0;}
+  .alerts li{display:flex;gap:9px;padding:9px 0;border-bottom:1px solid var(--line);}
+  .alerts li:last-child{border-bottom:none;}
+  .alerts .dot{width:7px;height:7px;border-radius:50%;background:var(--high);margin-top:6px;flex-shrink:0;}
+  .alerts .time{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .empty-alert{color:var(--muted);font-size:12px;padding:8px 0;}
+
+  .outcome{
+    margin-top:11px;padding:10px 12px;border-radius:8px;font-size:11.5px;line-height:1.5;
+    background:#F4F6F5;border:1px solid var(--line);
+  }
+  .outcome.pos{background:var(--high-soft);border-color:#F0D2C9;color:#8E3521;}
+  .outcome.neg{background:var(--low-soft);border-color:#CBE5D8;color:#245F45;}
+
+  .foot-note{color:var(--muted);font-size:11px;margin-top:10px;line-height:1.5;}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+
+  @media (max-width:1050px){
+    .grid{grid-template-columns:1fr;}
+    aside{width:250px;}
+  }
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand">
+    <div class="wordmark">Aarogya Twin</div>
+    <div class="sub">Digital Twin &middot; Clinician Console</div>
+  </div>
+  <div class="roster" id="roster"></div>
+  <div class="model-card" id="modelCard"></div>
+  <div class="banner">
+    <b>Synthetic demo &mdash; not for clinical use</b>
+    All patients and sensor streams are generated by <code>data/generate_*.py</code>.
+    No real patient data. Thresholds are illustrative, no clinical validation
+    has been performed, and nothing here should inform patient care.
+  </div>
+</aside>
+
+<main>
+  <div class="patient-head">
+    <div>
+      <div class="patient-name" id="pName">&mdash;</div>
+      <div class="patient-id-line" id="pMeta">&mdash;</div>
+      <div class="flags" id="pFlags"></div>
+    </div>
+    <div class="risk-block">
+      <div class="risk-label">Predicted glucose-spike risk &middot; next 2 h</div>
+      <div class="risk-number" id="riskNumber">&mdash;</div>
+      <div class="risk-sub" id="riskSub">&mdash;</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="col">
+      <div class="card">
+        <h3>Physiological stream <span>&middot; last 48 h &middot; HR (bpm) and HRV (ms) on separate axes</span></h3>
+        <div class="chart-box"><canvas id="chartVitals"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Continuous glucose &amp; predicted risk <span>&middot; overlay &middot; red ticks mark realised spikes</span></h3>
+        <div class="chart-box tall"><canvas id="chartGlucose"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Activity <span>&middot; steps per 15 min</span></h3>
+        <div class="chart-box"><canvas id="chartSteps"></canvas></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card">
+        <h3>Static record <span>&middot; EHR</span></h3>
+        <div class="lab-grid" id="labGrid"></div>
+      </div>
+
+      <div class="card">
+        <h3>Genetic markers</h3>
+        <div id="geneList"></div>
+      </div>
+
+      <div class="card">
+        <h3>Why this score <span>&middot; local contribution at this tick</span></h3>
+        <div id="whyList"></div>
+        <div class="why-note">
+          Each bar is the change in predicted risk when that single feature is
+          replaced with this patient's own trailing 7-day median. It is a local,
+          model-specific attribution &mdash; not a causal claim. Bars are drawn
+          to a common scale, so a small bar means small influence at this tick,
+          not a neutral one.
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Alerts <span>&middot; threshold <span id="alertThr"></span></span></h3>
+        <ul class="alerts" id="alertList"></ul>
+        <div id="outcomeBox"></div>
+        <div class="foot-note" id="windowNote"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script id="demo-data" type="application/json">
+__DEMO_DATA__
+</script>
+
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById('demo-data').textContent);
+const M = DATA.model_metrics, COHORT = DATA.cohort, META = DATA._meta;
+let activeId = DATA.patients[0].patient_id;
+let charts = {};
+
+/* Escape interpolated values. Patient ids are synthetic today, but a real
+   deployment would push EHR free-text through this template, and building DOM
+   from innerHTML without it is how that becomes an injection bug. */
+function esc(v){
+  return String(v).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+const riskWord = l => ({low:'Low', moderate:'Moderate', high:'High'}[l] || l);
+const pct = x => (100 * x).toFixed(1) + '%';
+
+function renderRoster(){
+  const el = document.getElementById('roster');
+  el.innerHTML = DATA.patients.map(p => `
+    <div class="roster-item ${p.patient_id === activeId ? 'active' : ''}"
+         data-id="${esc(p.patient_id)}" role="button" tabindex="0">
+      <div>
+        <div class="roster-name">${esc(p.patient_id)}</div>
+        <div class="roster-meta">${p.age}${esc(p.sex)} &middot; ${p.type2_diabetes ? 'T2D' : 'No T2D'}</div>
+      </div>
+      <span class="pill ${p.risk_level}">${esc(fmtRiskPct(p.current_risk_pct))}</span>
+    </div>`).join('');
+  el.querySelectorAll('.roster-item').forEach(node => {
+    const pick = () => { activeId = node.dataset.id; render(); };
+    node.onclick = pick;
+    node.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } };
+  });
+
+  const ab = M.ablation;
+  document.getElementById('modelCard').innerHTML = `
+    <b>Glucose-spike model</b>
+    <table>
+      <tr><td>ROC-AUC (full fusion)</td><td>${M.headline.roc_auc.toFixed(3)} &plusmn; ${ab.full_fusion.roc_auc_std.toFixed(3)}</td></tr>
+      <tr><td>PR-AUC (base rate ${pct(M.positive_rate)})</td><td>${M.headline.average_precision.toFixed(3)}</td></tr>
+      <tr><td>Brier score</td><td>${M.headline.brier.toFixed(4)}</td></tr>
+      <tr><td>Calibration error (10 bin)</td><td>${M.headline.ece_10bin.toFixed(3)}</td></tr>
+      <tr><td>Label-permutation control</td><td>${M.permutation_controls.global_label_permutation_auc.toFixed(3)} <span style="color:var(--muted)">(&#8776;0.50)</span></td></tr>
+    </table>
+    <b>Ablation &mdash; what each input is worth</b>
+    <table>
+      <tr><td>Shortcut control</td><td>${ab.shortcut_control.roc_auc_mean.toFixed(3)}</td></tr>
+      <tr><td>+ autonomic channels</td><td>${ab.shortcut_plus_autonomic.roc_auc_mean.toFixed(3)}</td></tr>
+      <tr><td>Full fusion (28 features)</td><td>${ab.full_fusion.roc_auc_mean.toFixed(3)}</td></tr>
+      <tr><td>Wearable only</td><td>${ab.dynamic_only.roc_auc_mean.toFixed(3)}</td></tr>
+      <tr><td>EHR only</td><td>${ab.static_only.roc_auc_mean.toFixed(3)}</td></tr>
+    </table>
+    <b>Alert burden, whole cohort</b>
+    <table>
+      <tr><td>Alert threshold</td><td>${COHORT.alert_threshold.toFixed(3)}</td></tr>
+      <tr><td>Ticks over threshold</td><td>${pct(COHORT.alert_rate_all_ticks)}</td></tr>
+      <tr><td>Alerts / patient / day</td><td>${COHORT.alerts_per_patient_day.toFixed(2)}</td></tr>
+    </table>
+    <div style="margin-top:6px;font-size:10.5px;">
+      The threshold is <em>derived</em> from a declared ${pct(COHORT.alert_budget_target)}
+      alert budget rather than hard-coded &mdash; v2's 0.60 cut sat above this
+      model's entire risk distribution and could never fire.
+      ${(() => {
+        const d = ab.dynamic_only.roc_auc_mean - ab.full_fusion.roc_auc_mean;
+        return d > 0
+          ? `Wearable-only (${ab.dynamic_only.roc_auc_mean.toFixed(3)}) actually
+             <em>beats</em> full fusion (${ab.full_fusion.roc_auc_mean.toFixed(3)}):
+             the EHR stream adds nothing for this target.`
+          : `Wearable-only (${ab.dynamic_only.roc_auc_mean.toFixed(3)}) vs. full
+             fusion (${ab.full_fusion.roc_auc_mean.toFixed(3)}) &mdash; the EHR
+             stream is within noise of the sensors alone.`;
+      })()}
+      Scores above are ${M.n_cv_folds}&times; patient-level cross-validation
+      (${M.n_test_patients} held-out patients per fold). The six patients listed
+      are scored by a model fit on the full cohort, as a deployed model would be.
+      Full numbers in <code>docs/RESULTS.md</code>.
+    </div>`;
+}
+
+function fmtRiskPct(rawPct, decimals){
+  if (decimals === undefined) decimals = 1;
+  // current_risk_pct is already a percentage number (0..100). A gradient
+  // booster's predict_proba is never exactly 0, but rounding to "0.00%" reads
+  // as a guarantee of safety. Never show a literal zero on a risk readout:
+  // below 0.05% it is "<0.1%", which is still true and cannot be mistaken for
+  // certainty.
+  if (rawPct < 0.05) return '<0.1%';
+  return rawPct.toFixed(decimals) + '%';
+}
+
+function renderPatient(){
+  const p = DATA.patients.find(x => x.patient_id === activeId);
+  if (!p) return;
+
+  document.getElementById('pName').textContent = p.patient_id;
+  document.getElementById('pMeta').textContent =
+    `${p.age}-year-old ${p.sex === 'F' ? 'female' : 'male'} \u00b7 BMI ${p.bmi}`;
+
+  const flags = [
+    {label:'Type 2 diabetes', on:p.type2_diabetes},
+    {label:'Hypertension', on:p.hypertension},
+    {label:'Prior cardiac event', on:p.prior_cardiac_event},
+  ];
+  document.getElementById('pFlags').innerHTML = flags.map(f =>
+    `<span class="flag ${f.on ? 'on' : ''}">${esc(f.label)}</span>`).join('');
+
+  const rn = document.getElementById('riskNumber');
+  rn.textContent = fmtRiskPct(p.current_risk_pct, 2);
+  rn.className = 'risk-number ' + p.risk_level;
+  document.getElementById('riskSub').textContent =
+    `${riskWord(p.risk_level)} risk \u2014 fusing EHR history with the trailing 4 h of sensor data. ` +
+    `Alert cut ${COHORT.alert_threshold.toFixed(3)} ` +
+    `(${(COHORT.alert_threshold * 100).toFixed(1)}%), which is the top ` +
+    `${pct(COHORT.alert_budget_target)} of cohort risk.`;
+
+  document.getElementById('labGrid').innerHTML = `
+    <div><div class="lab-name">HbA1c</div><div class="lab-value">${esc(p.hba1c_pct)}%</div></div>
+    <div><div class="lab-name">Fasting glucose</div><div class="lab-value">${esc(p.fasting_glucose_mgdl)} <span style="font-size:11px;font-weight:400;color:var(--muted)">mg/dL</span></div></div>
+    <div><div class="lab-name">Age</div><div class="lab-value">${esc(p.age)}</div></div>
+    <div><div class="lab-name">BMI</div><div class="lab-value">${esc(p.bmi)}</div></div>`;
+
+  const dots = (n, max) => Array.from({length:max}, (_, i) =>
+    `<span class="${i < n ? 'filled' : ''}"></span>`).join('');
+  document.getElementById('geneList').innerHTML = `
+    <div class="gene">
+      <div class="gene-name">TCF7L2<small>Type 2 diabetes risk variant</small></div>
+      <div class="allele-dots">${dots(p.tcf7l2_risk_allele_count, 2)}</div>
+    </div>
+    <div class="gene">
+      <div class="gene-name">APOE4<small>Cardiovascular risk variant</small></div>
+      <div class="allele-dots">${dots(p.apoe4_risk_allele_count, 2)}</div>
+    </div>`;
+
+  renderWhy(p);
+  renderAlerts(p);
+  renderCharts(p);
+}
+
+function renderWhy(p){
+  const el = document.getElementById('whyList');
+  if (!p.contributions || !p.contributions.length){
+    el.innerHTML = '<div class="empty-alert">No attribution available.</div>';
+    return;
+  }
+  // Deltas are in probability points and are small in absolute terms (the
+  // model is well-calibrated at a ~2% base rate), so they are reported in
+  // PERCENTAGE POINTS with three decimals rather than as a whole-number
+  // percent, which would render most of them as "0.0%".
+  const fmtPP = v => (v >= 0 ? '+' : '') + (v * 100).toFixed(3) + ' pp';
+  const max = Math.max(...p.contributions.map(c => Math.abs(c.delta)), 1e-9);
+  el.innerHTML = p.contributions.map(c => {
+    const frac = Math.abs(c.delta) / max;
+    const up = c.delta > 0;
+    const color = up ? 'var(--high)' : 'var(--low)';
+    const side = up ? 'right:50%' : 'left:50%';
+    const width = `width:${(frac * 50).toFixed(1)}%`;
+    return `<div class="why-row">
+      <span class="why-name" title="${esc(c.feature)}">${esc(c.feature)}</span>
+      <span class="why-track"><span class="why-fill" style="${side};${width};background:${color}"></span></span>
+      <span class="why-delta" style="color:${color}">${fmtPP(c.delta)}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderAlerts(p){
+  document.getElementById('alertThr').textContent =
+    META.alert_threshold.toFixed(3) + ' (top ' + pct(COHORT.alert_budget_target) + ' of risk)';
+  const el = document.getElementById('alertList');
+  const rows = p.alerts.map(a => `<li><span class="dot"></span>
+      <div><div>${esc(a.message)}</div><div class="time">${esc(a.t)}</div></div></li>`);
+  if (!rows.length){
+    rows.push('<li class="empty-alert" style="border:none">No alerts in this window.</li>');
+  }
+  // The export ships only the last 5 alerts; say so rather than letting the
+  // count in the outcome box contradict the list above it.
+  if (p.n_alerts_in_window > p.alerts.length){
+    rows.unshift(`<li class="empty-alert" style="border:none;padding-bottom:2px">
+      Showing the ${p.alerts.length} most recent of ${p.n_alerts_in_window} alert ticks
+      in this window.</li>`);
+  }
+  el.innerHTML = rows.join('');
+
+  // The `realised_spike_label` covers the FINAL tick only, so make the
+  // distinction explicit and report precision across the window rather than
+  // implying the model's alerts were uniformly right.
+  const pos = p.realised_spike_label === 1;
+  const n = p.timeline.length;
+  let tp = 0, fp = 0, alerted = 0;
+  p.timeline.forEach(r => {
+    const hit = r.risk >= COHORT.alert_threshold;
+    if (hit) alerted++;
+    if (hit && r.spike) tp++;
+    if (hit && !r.spike) fp++;
+  });
+  document.getElementById('outcomeBox').innerHTML =
+    `<div class="outcome ${pos ? 'pos' : 'neg'}">
+      <b>At the displayed tick:</b> ${pos
+        ? 'a spike threshold <em>was</em> crossed within the following 2 hours.'
+        : 'no spike threshold was crossed within the following 2 hours.'}
+      <br/><b>Across all ${n} ticks in this window:</b> ${alerted} alert tick(s) &mdash;
+      ${tp} preceded a real spike, ${fp} did not
+      (${alerted ? Math.round(100 * tp / alerted) + '% precision' : 'n/a'}).
+    </div>`;
+
+  const nAlert = p.n_alerts_in_window;
+  document.getElementById('windowNote').textContent =
+    `Window rule: ${META.window_rule} Patient selection: ${META.patient_selection_rule}` +
+    (nAlert === 0
+      ? ` This patient's 48 h window contains no alert tick. At a ${pct(COHORT.alert_budget_target)} `
+        + `alert budget most 48 h windows look like this one -- that is the point of a `
+        + `budget-derived threshold, and it is why the cohort alert rate above is `
+        + `stated rather than left for you to infer from these six patients.`
+      : '');
+}
+
+function renderCharts(p){
+  const labels = p.timeline.map(r => r.t);
+  const base = {
+    responsive:true, maintainAspectRatio:false, animation:false,
+    interaction:{mode:'index', intersect:false},
+    plugins:{legend:{labels:{boxWidth:10, font:{size:11}}}},
+  };
+  const xScale = {ticks:{maxTicksLimit:6, font:{size:10}}, grid:{display:false}};
+
+  Object.values(charts).forEach(c => c.destroy());
+
+  // HR and HRV on separate axes: they differ by ~2x in range and sharing one
+  // axis (as v2 did) flattens HRV into an unreadable line.
+  charts.vitals = new Chart(document.getElementById('chartVitals'), {
+    type:'line',
+    data:{ labels, datasets:[
+      {label:'Heart rate (bpm)', data:p.timeline.map(r => r.hr), yAxisID:'y',
+       borderColor:'#1F6F78', backgroundColor:'transparent', tension:0.3,
+       pointRadius:0, borderWidth:2},
+      {label:'HRV RMSSD (ms)', data:p.timeline.map(r => r.hrv), yAxisID:'y1',
+       borderColor:'#B5791E', backgroundColor:'transparent', tension:0.3,
+       pointRadius:0, borderWidth:2, borderDash:[5,3]},
+    ]},
+    options: {...base, scales:{
+      x: xScale,
+      y:{position:'left', title:{display:true, text:'bpm', font:{size:10}}},
+      y1:{position:'right', grid:{display:false}, title:{display:true, text:'ms', font:{size:10}}},
+    }}
+  });
+
+  // Realised spikes as discrete markers, so the overlay is falsifiable:
+  // you can see whether the risk curve led the events.
+  const spikePoints = p.timeline.map((r, i) => (r.spike ? r.cgm : null));
+  // Custom plugin: draws the alert threshold as a horizontal rule on the risk
+  // axis. Without it a reader has no way to tell whether a visible risk
+  // excursion should have raised an alert.
+  const alertLine = {
+    id:'alertLine',
+    afterDatasetsDraw(chart, _args, opts){
+      const yScale = chart.scales.y1;
+      if (!yScale) return;
+      const yy = yScale.getPixelForValue(opts.threshold * 100);
+      if (yy < chart.chartArea.top || yy > chart.chartArea.bottom) return;
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.strokeStyle = '#B4432D';
+      ctx.setLineDash([2,3]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(chart.chartArea.left, yy);
+      ctx.lineTo(chart.chartArea.right, yy);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#B4432D';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('alert cut', chart.chartArea.right - 4, yy - 4);
+      ctx.restore();
+    }
+  };
+
+  // The risk axis is scaled to the data, not fixed at 0-100. At a ~2% base rate
+  // a 0-100 axis squashes every excursion into a flat line at the bottom, which
+  // is the same readability failure as the shared HR/HRV axis.
+  const maxRiskPct = Math.max(...p.timeline.map(r => r.risk * 100));
+  const riskTop = Math.max(COHORT.alert_threshold * 100 * 1.35, maxRiskPct * 1.2, 5);
+
+  charts.glucose = new Chart(document.getElementById('chartGlucose'), {
+    type:'line',
+    data:{ labels, datasets:[
+      {label:'CGM (mg/dL)', data:p.timeline.map(r => r.cgm), yAxisID:'y',
+       borderColor:'#1B2430', backgroundColor:'rgba(27,36,48,0.05)', fill:true,
+       tension:0.3, pointRadius:0, borderWidth:2},
+      {label:'Realised spike', data:spikePoints, yAxisID:'y',
+       borderColor:'transparent', backgroundColor:'#B4432D',
+       showLine:false, pointRadius:4, pointStyle:'circle'},
+      {label:'Predicted risk (%)', data:p.timeline.map(r => +(r.risk * 100).toFixed(2)),
+       yAxisID:'y1', borderColor:'#B4432D', backgroundColor:'transparent',
+       borderDash:[4,3], tension:0.3, pointRadius:0, borderWidth:2},
+    ]},
+    options: {...base, plugins:{
+      ...base.plugins,
+      alertLine:{threshold: COHORT.alert_threshold},
+    }, scales:{
+      x: xScale,
+      y:{position:'left', title:{display:true, text:'mg/dL', font:{size:10}}},
+      y1:{position:'right', min:0, max:Math.ceil(riskTop), grid:{display:false},
+          title:{display:true, text:'risk %', font:{size:10}}},
+    }},
+    plugins:[alertLine]
+  });
+
+  charts.steps = new Chart(document.getElementById('chartSteps'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      {label:'Steps', data:p.timeline.map(r => r.steps), backgroundColor:'#9BB8B6'},
+    ]},
+    options: {...base, plugins:{legend:{display:false}}, scales:{x: xScale}}
+  });
+}
+
+function render(){ renderRoster(); renderPatient(); }
+render();
+</script>
+</body>
+</html>

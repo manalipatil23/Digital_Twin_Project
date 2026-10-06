@@ -1,0 +1,23 @@
+# Normalise line endings in the repository, not just in the working tree.
+# Without this, git stores whatever the committing OS produced: this project was
+# committed from Windows and 20 tracked files landed as CRLF, including every
+# .py and every generated JSON. That shows up as whole-file diffs for anyone on
+# Linux or macOS and hides real changes inside them.
+* text=auto eol=lf
+
+# Generated artefacts and models are binary. Marking them is not cosmetic: with
+# `text=auto` git applies EOL and, on a file it guesses wrongly, content
+# mangling to a .joblib blob.
+*.joblib binary
+*.png binary
+*.jpg binary
+*.pdf binary
+*.zip binary
+
+# Fixtures that are meant to be byte-compared, not line-processed.
+*.csv text eol=lf
+
+# Windows-only helper scripts still run under LF via the shim, but declare the
+# intent so nobody re-adds a CRLF workaround later.
+*.bat text eol=crlf
+*.cmd text eol=crlf
