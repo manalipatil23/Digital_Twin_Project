@@ -295,3 +295,11 @@ physiology:
 
 Every defect and its fix, including two found only by CI's reduced settings, is
 in [`docs/REVISION_NOTES.md`](docs/REVISION_NOTES.md).
+
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+**Disclaimer:** This project is a research prototype and is not intended for clinical diagnosis or patient-care decisions.
+
