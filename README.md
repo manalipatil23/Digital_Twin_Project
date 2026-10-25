@@ -303,3 +303,5 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 **Disclaimer:** This project is a research prototype and is not intended for clinical diagnosis or patient-care decisions.
 
+## Project Status
+The project includes a dashboard, data processing pipeline, machine learning components, and automated tests.
