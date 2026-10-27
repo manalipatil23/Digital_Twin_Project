@@ -246,6 +246,29 @@ construction: one fixed 48-h window per patient, a clinical roster rule, an
 alert threshold from a 1%-of-ticks budget (not a hard-coded 0.60), the cohort
 alert rate stated, and a synthetic-data / not-for-clinical-use banner.
 
+## 📊 Project Dashboard & Visualizations
+
+### 1. Full Dashboard
+![Full Dashboard](images/Full_dashboard_low_risk_patient.jpeg)
+
+### 2. Activity Graph and Alerts
+![Activity Graph](images/Activity_graph_and_alerts.jpeg)
+
+### 3. Glucose Graph and Score
+![Glucose Graph](images/Glucose_graph_and_score_P100036.jpeg)
+
+### 4. Glucose Graph Interaction
+![Glucose Interaction](images/Glucose_graph_interaction.jpeg)
+
+### 5. Heart Rate and HRV
+![Heart Rate](images/HRV_Heart_rate.jpeg)
+
+### 6. Risk Score Comparison
+![Risk Score](images/Risk_score_compared.jpeg)
+
+### 7. Stream Graph and Risk Score
+![Stream Graph](images/Stream_graph_and_risk_score.jpeg)
+
 ## Repository structure
 
 ```
